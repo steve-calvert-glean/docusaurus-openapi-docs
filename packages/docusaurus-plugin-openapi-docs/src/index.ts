@@ -8,7 +8,6 @@
 import fs from "fs";
 import path from "path";
 import zlib from "zlib";
-import crypto from "crypto";
 
 import type { LoadContext, Plugin } from "@docusaurus/types";
 import { Globby, posixPath } from "@docusaurus/utils";
@@ -36,10 +35,39 @@ import type {
   TagPageMetadata,
 } from "./types";
 
-const SPEC_HASH_FILE = ".spec-hash";
+const SPEC_META_FILE = ".spec-meta";
 
-function getSpecHashPath(dir: string): string {
-  return `${dir}/${SPEC_HASH_FILE}`;
+function getSpecMetaPath(dir: string): string {
+  return `${dir}/${SPEC_META_FILE}`;
+}
+
+async function getSpecLastModified(spec: string): Promise<number> {
+  if (isURL(spec)) {
+    try {
+      const res = await fetch(spec, { method: "HEAD" });
+      const header = res.headers.get("last-modified");
+      if (header) {
+        return new Date(header).getTime();
+      }
+    } catch {
+      /* ignore */
+    }
+    return Date.now();
+  }
+  const stat = await fs.promises.lstat(spec);
+  if (stat.isDirectory()) {
+    const files = await Globby(["**/*.{json,yaml,yml}"], {
+      cwd: spec,
+      deep: 1,
+    });
+    const times = await Promise.all(
+      files.map(
+        async (file) => (await fs.promises.lstat(path.join(spec, file))).mtimeMs
+      )
+    );
+    return Math.max(...times, stat.mtimeMs);
+  }
+  return stat.mtimeMs;
 }
 
 export function isURL(str: string): boolean {
@@ -150,21 +178,13 @@ export default function pluginOpenAPIDocs(
 
     try {
       const openapiFiles = await readOpenapiFiles(contentPath);
-      const hash = crypto
-        .createHash("sha1")
-        .update(
-          openapiFiles
-            .sort((a, b) => a.source.localeCompare(b.source))
-            .map((f) => JSON.stringify(f.data))
-            .join("")
-        )
-        .digest("hex");
-      const hashFile = getSpecHashPath(outputDir);
+      const lastModified = await getSpecLastModified(contentPath);
+      const metaFile = getSpecMetaPath(outputDir);
       if (
         cache &&
-        fs.existsSync(hashFile) &&
+        fs.existsSync(metaFile) &&
         fs.existsSync(outputDir) &&
-        fs.readFileSync(hashFile, "utf8") === hash
+        fs.readFileSync(metaFile, "utf8") === String(lastModified)
       ) {
         console.log(
           chalk.green(
@@ -508,10 +528,10 @@ custom_edit_url: null
 
       if (cache) {
         try {
-          fs.writeFileSync(hashFile, hash, "utf8");
+          fs.writeFileSync(metaFile, String(lastModified), "utf8");
         } catch (err) {
           console.error(
-            chalk.red(`Failed to write "${hashFile}"`),
+            chalk.red(`Failed to write "${metaFile}"`),
             chalk.yellow(err)
           );
         }
@@ -575,16 +595,16 @@ custom_edit_url: null
       })
     );
 
-    const specHashPath = getSpecHashPath(apiDir);
-    if (fs.existsSync(specHashPath)) {
-      fs.unlink(specHashPath, (err) => {
+    const specMetaPath = getSpecMetaPath(apiDir);
+    if (fs.existsSync(specMetaPath)) {
+      fs.unlink(specMetaPath, (err) => {
         if (err) {
           console.error(
-            chalk.red(`Cleanup failed for "${specHashPath}"`),
+            chalk.red(`Cleanup failed for "${specMetaPath}"`),
             chalk.yellow(err)
           );
         } else {
-          console.log(chalk.green(`Cleanup succeeded for "${specHashPath}"`));
+          console.log(chalk.green(`Cleanup succeeded for "${specMetaPath}"`));
         }
       });
     }

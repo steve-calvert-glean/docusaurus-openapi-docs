@@ -54,7 +54,7 @@ export interface APIOptions {
   disableCompression?: boolean;
   /**
    * Enable generation caching. When true (default), docs will only
-   * regenerate when the source spec changes.
+   * regenerate when the source spec\'s last modified time changes.
    */
   cache?: boolean;
 }
