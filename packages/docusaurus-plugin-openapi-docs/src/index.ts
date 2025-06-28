@@ -132,6 +132,7 @@ export default function pluginOpenAPIDocs(
     config,
     docsPlugin = "@docusaurus/plugin-content-docs",
     docsPluginId,
+    cache: enableCache = false,
   } = options;
   const { siteDir, siteConfig } = context;
 
@@ -159,7 +160,6 @@ export default function pluginOpenAPIDocs(
       downloadUrl,
       sidebarOptions,
       disableCompression,
-      cache = true,
     } = options;
 
     // Remove trailing slash before proceeding
@@ -181,7 +181,7 @@ export default function pluginOpenAPIDocs(
       const lastModified = await getSpecLastModified(contentPath);
       const metaFile = getSpecMetaPath(outputDir);
       if (
-        cache &&
+        enableCache &&
         fs.existsSync(metaFile) &&
         fs.existsSync(outputDir) &&
         fs.readFileSync(metaFile, "utf8") === String(lastModified)
@@ -526,7 +526,7 @@ custom_edit_url: null
         return;
       });
 
-      if (cache) {
+      if (enableCache) {
         try {
           fs.writeFileSync(metaFile, String(lastModified), "utf8");
         } catch (err) {

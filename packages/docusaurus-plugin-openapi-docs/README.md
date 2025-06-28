@@ -123,6 +123,7 @@ import type * as OpenApiPlugin from "docusaurus-plugin-openapi-docs";
       {
         id: "api", // plugin id
         docsPluginId: "classic", // configured for preset-classic
+        cache: true,
         config: {
           petstore: {
             specPath: "examples/petstore.yaml",
@@ -145,11 +146,14 @@ import type * as OpenApiPlugin from "docusaurus-plugin-openapi-docs";
 
 The `docusaurus-plugin-openapi-docs` plugin can be configured with the following options:
 
-| Name           | Type     | Default                           | Description                                                                                                                                                   |
-| -------------- | -------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`           | `string` | `null`                            | A unique plugin ID.                                                                                                                                           |
-| `docsPlugin`   | `string` | `@docusaurus/plugin-content-docs` | The plugin used to render the OpenAPI docs (ignored if the plugin instance referenced by `docsPluginId` is a `preset`).                                       |
-| `docsPluginId` | `string` | `null`                            | The plugin ID associated with the `preset` or configured `docsPlugin` instance used to render the OpenAPI docs (e.g. "your-plugin-id", "classic", "default"). |
+| Name           | Type      | Default                           | Description                                                                                                                                                   |
+| -------------- | --------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`           | `string`  | `null`                            | A unique plugin ID.                                                                                                                                           |
+| `docsPlugin`   | `string`  | `@docusaurus/plugin-content-docs` | The plugin used to render the OpenAPI docs (ignored if the plugin instance referenced by `docsPluginId` is a `preset`).                                       |
+| `docsPluginId` | `string`  | `null`                            | The plugin ID associated with the `preset` or configured `docsPlugin` instance used to render the OpenAPI docs (e.g. "your-plugin-id", "classic", "default"). |
+| `cache`        | `boolean` | `false`                           | _Optional:_ Skip generation when the spec's last modified time matches the stored metadata.                                                                   |
+
+When caching is enabled, the plugin stores this timestamp in `<outputDir>/.spec-meta` and reuses the docs if the value matches on subsequent runs.
 
 ### config
 
@@ -174,9 +178,6 @@ The `docusaurus-plugin-openapi-docs` plugin can be configured with the following
 | `versions`           | `object`  | `null`  | _Optional:_ Options for versioning configuration. See below for a list of supported options.                                |
 | `markdownGenerators` | `object`  | `null`  | _Optional:_ Customize MDX content via generator functions. See below for a list of supported options.                       |
 | `showSchemas`        | `boolean` | `null`  | _Optional:_ If set to `true`, generates standalone schema pages and adds them to the sidebar.                               |
-| `cache`              | `boolean` | `true`  | _Optional:_ Skip generation when the spec’s last modified time matches the stored metadata.                                 |
-
-When caching is enabled, the plugin stores this timestamp in `<outputDir>/.spec-meta` and reuses the docs if the value matches on subsequent runs.
 
 ### sidebarOptions
 

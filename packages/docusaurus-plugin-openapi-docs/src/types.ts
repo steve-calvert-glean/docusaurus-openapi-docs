@@ -26,6 +26,11 @@ export interface PluginOptions {
   id?: string;
   docsPlugin?: string;
   docsPluginId: string;
+  /**
+   * Enable generation caching across all specs. When true, docs are only
+   * regenerated when the source spec's last modified time changes.
+   */
+  cache?: boolean;
   config: {
     [key: string]: APIOptions;
   };
@@ -52,11 +57,6 @@ export interface APIOptions {
   markdownGenerators?: MarkdownGenerator;
   showSchemas?: boolean;
   disableCompression?: boolean;
-  /**
-   * Enable generation caching. When true (default), docs will only
-   * regenerate when the source spec\'s last modified time changes.
-   */
-  cache?: boolean;
 }
 
 export interface MarkdownGenerator {
