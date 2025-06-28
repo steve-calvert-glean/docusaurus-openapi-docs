@@ -52,6 +52,11 @@ export interface APIOptions {
   markdownGenerators?: MarkdownGenerator;
   showSchemas?: boolean;
   disableCompression?: boolean;
+  /**
+   * Enable generation caching. When true (default), docs will only
+   * regenerate when the source spec changes.
+   */
+  cache?: boolean;
 }
 
 export interface MarkdownGenerator {

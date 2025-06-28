@@ -8,6 +8,7 @@
 import fs from "fs";
 import path from "path";
 import zlib from "zlib";
+import crypto from "crypto";
 
 import type { LoadContext, Plugin } from "@docusaurus/types";
 import { Globby, posixPath } from "@docusaurus/utils";
@@ -34,6 +35,12 @@ import type {
   SchemaPageMetadata,
   TagPageMetadata,
 } from "./types";
+
+const SPEC_HASH_FILE = ".spec-hash";
+
+function getSpecHashPath(dir: string): string {
+  return `${dir}/${SPEC_HASH_FILE}`;
+}
 
 export function isURL(str: string): boolean {
   return /^(https?:)\/\//m.test(str);
@@ -124,6 +131,7 @@ export default function pluginOpenAPIDocs(
       downloadUrl,
       sidebarOptions,
       disableCompression,
+      cache = true,
     } = options;
 
     // Remove trailing slash before proceeding
@@ -142,6 +150,29 @@ export default function pluginOpenAPIDocs(
 
     try {
       const openapiFiles = await readOpenapiFiles(contentPath);
+      const hash = crypto
+        .createHash("sha1")
+        .update(
+          openapiFiles
+            .sort((a, b) => a.source.localeCompare(b.source))
+            .map((f) => JSON.stringify(f.data))
+            .join("")
+        )
+        .digest("hex");
+      const hashFile = getSpecHashPath(outputDir);
+      if (
+        cache &&
+        fs.existsSync(hashFile) &&
+        fs.existsSync(outputDir) &&
+        fs.readFileSync(hashFile, "utf8") === hash
+      ) {
+        console.log(
+          chalk.green(
+            `Skipping generation for "${specPath}". Output is up to date.`
+          )
+        );
+        return;
+      }
       const [loadedApi, tags, tagGroups] = await processOpenapiFiles(
         openapiFiles,
         options,
@@ -475,6 +506,17 @@ custom_edit_url: null
         return;
       });
 
+      if (cache) {
+        try {
+          fs.writeFileSync(hashFile, hash, "utf8");
+        } catch (err) {
+          console.error(
+            chalk.red(`Failed to write "${hashFile}"`),
+            chalk.yellow(err)
+          );
+        }
+      }
+
       return;
     } catch (e) {
       console.error(chalk.red(`Loading of api failed for "${contentPath}"`));
@@ -532,6 +574,20 @@ custom_edit_url: null
         }
       })
     );
+
+    const specHashPath = getSpecHashPath(apiDir);
+    if (fs.existsSync(specHashPath)) {
+      fs.unlink(specHashPath, (err) => {
+        if (err) {
+          console.error(
+            chalk.red(`Cleanup failed for "${specHashPath}"`),
+            chalk.yellow(err)
+          );
+        } else {
+          console.log(chalk.green(`Cleanup succeeded for "${specHashPath}"`));
+        }
+      });
+    }
   }
 
   async function generateVersions(versions: object, outputDir: string) {
